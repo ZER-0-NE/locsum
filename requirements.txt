@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+langchain
+ollama
+sentence-transformers
+faiss-cpu
+python-multipart
+tavily-python
