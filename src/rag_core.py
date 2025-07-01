@@ -4,6 +4,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from typing import List
 import os
+import torch # Import torch to check for GPU availability
+
+# Define the global constant for the embedding model name.
+# This allows for easy modification of the model used across the application.
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # This function is responsible for loading documents from a specified directory.
 # It is designed to be modular, allowing for future integration with an Obsidian MCP server.
@@ -79,17 +84,24 @@ def initialize_embedding_model():
     Returns:
         HuggingFaceEmbeddings: An initialized HuggingFaceEmbeddings object.
     """
-    # Use a pre-trained sentence-transformer model. 'all-MiniLM-L6-v2' is a good default
-    # for its balance of performance and size, suitable for local execution.
-    # The model is downloaded and loaded locally.
-    model_name = "all-MiniLM-L6-v2"
-    model_kwargs = {'device': 'cpu'} # Specify to run on CPU, as GPU might not always be available.
-    encode_kwargs = {'normalize_embeddings': False} # Normalizing embeddings can be beneficial for cosine similarity.
+    # Determine the appropriate device for the embedding model.
+    # Prioritize CUDA (NVIDIA GPUs), then MPS (Apple Silicon GPUs), and finally CPU.
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
 
-    # Initialize the HuggingFaceEmbeddings object.
+    # Define model keyword arguments, including the determined device.
+    model_kwargs = {'device': device}
+    # Define encoding keyword arguments. Normalizing embeddings can be beneficial for cosine similarity.
+    encode_kwargs = {'normalize_embeddings': False}
+
+    # Initialize the HuggingFaceEmbeddings object using the global model name and determined device.
     # This object will be used to generate embeddings for text.
     embeddings = HuggingFaceEmbeddings(
-        model_name=model_name,
+        model_name=EMBEDDING_MODEL_NAME,
         model_kwargs=model_kwargs,
         encode_kwargs=encode_kwargs
     )
