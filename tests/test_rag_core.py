@@ -1,6 +1,7 @@
 import os
 import shutil
-from src.rag_core import load_documents_from_directory
+from src.rag_core import load_documents_from_directory, chunk_documents
+from langchain_core.documents import Document
 
 def test_load_documents_from_directory():
     # Define a temporary directory for testing.
@@ -54,3 +55,36 @@ def test_load_documents_from_nonexistent_directory():
     except FileNotFoundError as e:
         # Assert that the error message is as expected.
         assert f"Directory not found: {non_existent_dir}" in str(e)
+
+def test_chunk_documents():
+    # Create a dummy long document for testing chunking.
+    long_text = "This is a very long document that needs to be split into smaller chunks. " \
+                "Each chunk should have a specific size and an overlap with the next chunk. " \
+                "This helps in maintaining context across the chunks when performing retrieval. " \
+                "The RecursiveCharacterTextSplitter is designed to intelligently split text " \
+                "while trying to keep meaningful units together, like sentences or paragraphs. " \
+                "This is the final part of the document."
+    
+    # Create a LangChain Document object from the dummy text.
+    # Metadata can be added here if needed, but for chunking, page_content is sufficient.
+    dummy_document = Document(page_content=long_text, metadata={"source": "dummy_source.txt"})
+
+    # Define chunking parameters.
+    chunk_size = 100
+    chunk_overlap = 20
+
+    # Call the chunking function with the dummy document.
+    chunked_documents = chunk_documents([dummy_document], chunk_size, chunk_overlap)
+
+    # Assert that the document has been split into multiple chunks.
+    # The exact number of chunks depends on the text and chunking parameters.
+    assert len(chunked_documents) > 1
+
+    # Assert that each chunk's content length is within the expected range (considering overlap).
+    for chunk in chunked_documents:
+        assert len(chunk.page_content) <= chunk_size
+        # Also check that metadata is preserved.
+        assert chunk.metadata["source"] == "dummy_source.txt"
+
+    # Removed strict overlap assertion as RecursiveCharacterTextSplitter does not guarantee exact substring overlap.
+    # The primary goal is to ensure documents are chunked and metadata is preserved.

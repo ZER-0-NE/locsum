@@ -1,5 +1,6 @@
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from typing import List
 import os
 
@@ -33,6 +34,39 @@ def load_documents_from_directory(directory_path: str) -> List[Document]:
 
     # Return the list of loaded Document objects.
     return documents
+
+# This function is responsible for splitting documents into smaller, manageable chunks.
+# This is crucial for RAG systems as LLMs have context window limitations,
+# and smaller chunks allow for more precise retrieval.
+def chunk_documents(documents: List[Document], chunk_size: int = 1000, chunk_overlap: int = 200) -> List[Document]:
+    """
+    Splits a list of documents into smaller chunks.
+
+    Args:
+        documents (List[Document]): A list of LangChain Document objects to be chunked.
+        chunk_size (int): The maximum size of each chunk.
+        chunk_overlap (int): The number of characters to overlap between consecutive chunks.
+
+    Returns:
+        List[Document]: A list of chunked LangChain Document objects.
+    """
+    # Initialize the RecursiveCharacterTextSplitter.
+    # This splitter attempts to split text in a way that keeps sentences and paragraphs together,
+    # using a list of characters to split on.
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,  # Define the maximum size for each text chunk.
+        chunk_overlap=chunk_overlap,  # Define the overlap between chunks to maintain context.
+        length_function=len,  # Use the standard Python len() function to measure chunk length.
+        add_start_index=True, # Add a metadata field for the starting index of each chunk.
+    )
+
+    # Split the documents into chunks.
+    # The 'split_documents' method processes each document in the list
+    # and applies the splitting logic.
+    chunked_documents = text_splitter.split_documents(documents)
+
+    # Return the list of chunked Document objects.
+    return chunked_documents
 
 # Placeholder for the embedding model.
 # This section will be replaced with actual embedding model initialization
