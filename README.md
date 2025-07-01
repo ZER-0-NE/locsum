@@ -39,9 +39,15 @@ This project aims to create a local, personal second brain using a Retrieval Aug
 
 A basic FastAPI application has been set up in `src/app.py` with a health check endpoint.
 
+## RAG Core - Data Processing and Logic
+
+### Document Loading
+
+Implemented a function `load_documents_from_directory` in `src/rag_core.py` that uses `langchain_community.document_loaders.DirectoryLoader` to load markdown files from a specified directory. This function returns a list of `langchain_core.documents.Document` objects.
+
 ## Running Tests
 
-To run the unit tests for the FastAPI application, ensure your virtual environment is activated and run:
+To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
 
 ```bash
 export PYTHONPATH=$(pwd) && pytest tests/
