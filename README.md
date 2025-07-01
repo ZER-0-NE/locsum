@@ -45,6 +45,10 @@ A basic FastAPI application has been set up in `src/app.py` with a health check 
 
 Implemented a function `load_documents_from_directory` in `src/rag_core.py` that uses `langchain_community.document_loaders.DirectoryLoader` to load markdown files from a specified directory. This function returns a list of `langchain_core.documents.Document` objects.
 
+### Document Chunking
+
+Implemented a function `chunk_documents` in `src/rag_core.py` that uses `langchain.text_splitter.RecursiveCharacterTextSplitter` to split loaded documents into smaller, manageable chunks. The default `chunk_size` is set to 1000 characters with a `chunk_overlap` of 200 characters. This initial choice is a common heuristic in RAG applications, aiming to balance the amount of context per chunk with the LLM's context window limitations. These parameters are configurable and can be fine-tuned for optimal performance.
+
 ## Running Tests
 
 To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
