@@ -63,6 +63,10 @@ Initialized the embedding model in `src/rag_core.py` using `langchain_community.
     *   **General Purpose:** While good, it's a general-purpose model. For highly specialized domains or very nuanced semantic understanding, larger or fine-tuned models might offer better accuracy.
     *   **Context Window:** Like all embedding models, its effectiveness can be influenced by the length of the text being embedded. Very long documents might benefit from more advanced chunking or different embedding strategies.
 
+### FAISS Vector Store Setup
+
+Implemented a function `create_faiss_index` in `src/rag_core.py` that takes a list of documents and the initialized embedding model to create a FAISS vector store. FAISS (Facebook AI Similarity Search) is used for efficient similarity search of vector embeddings, enabling fast retrieval of relevant documents based on query embeddings.
+
 ## Running Tests
 
 To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
