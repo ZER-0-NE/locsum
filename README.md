@@ -67,6 +67,10 @@ Initialized the embedding model in `src/rag_core.py` using `langchain_community.
 
 Implemented a function `create_faiss_index` in `src/rag_core.py` that takes a list of documents and the initialized embedding model to create a FAISS vector store. FAISS (Facebook AI Similarity Search) is used for efficient similarity search of vector embeddings, enabling fast retrieval of relevant documents based on query embeddings.
 
+### FAISS Index Persistence
+
+Added functions `save_faiss_index` and `load_faiss_index` in `src/rag_core.py` to handle the persistence of the FAISS index to disk. This allows the application to save the generated index and load it later, avoiding the need to re-embed all documents on every restart. This significantly improves startup time and efficiency for repeated use.
+
 ## Running Tests
 
 To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
