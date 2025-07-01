@@ -6,3 +6,5 @@ sentence-transformers
 faiss-cpu
 python-multipart
 tavily-python
+pytest
+httpx
