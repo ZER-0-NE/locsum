@@ -2,6 +2,7 @@ from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS # Import FAISS for vector store
 from typing import List
 import os
 import torch # Import torch to check for GPU availability
@@ -107,13 +108,28 @@ def initialize_embedding_model():
     )
     return embeddings
 
-# Placeholder for the embedding model.
-# This variable will hold the initialized embedding model.
-embedding_model = initialize_embedding_model() # Initialize the embedding model upon module load.
+# This function creates a FAISS vector store from a list of documents and an embedding model.
+# FAISS is used for efficient similarity search of vector embeddings.
+def create_faiss_index(documents: List[Document], embeddings: HuggingFaceEmbeddings):
+    """
+    Creates a FAISS vector store from a list of documents and an embedding model.
+
+    Args:
+        documents (List[Document]): A list of LangChain Document objects to be indexed.
+        embeddings (HuggingFaceEmbeddings): The embedding model to use for generating document embeddings.
+
+    Returns:
+        FAISS: A FAISS vector store object.
+    """
+    # Create the FAISS index from the documents and embeddings.
+    # This process embeds each document and adds its vector to the FAISS index.
+    vector_store = FAISS.from_documents(documents, embeddings)
+    return vector_store
+
+# Initialize the embedding model upon module load.
+embedding_model = initialize_embedding_model()
 
 # Placeholder for the FAISS vector store.
-# This section will be replaced with actual FAISS index creation and management
-# in a later step. FAISS (Facebook AI Similarity Search) is an efficient library
-# for similarity search and clustering of dense vectors, enabling fast retrieval
-# of relevant documents based on query embeddings.
-faiss_index = None  # To be initialized later with a FAISS index
+# This variable will hold the initialized FAISS index.
+# It is initialized to None, and will be created dynamically when documents are available.
+faiss_index = None # Initialize to None, will be created when documents are processed.

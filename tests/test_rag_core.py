@@ -1,8 +1,9 @@
 import os
 import shutil
-from src.rag_core import load_documents_from_directory, chunk_documents, initialize_embedding_model
+from src.rag_core import load_documents_from_directory, chunk_documents, initialize_embedding_model, create_faiss_index
 from langchain_core.documents import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 
 def test_load_documents_from_directory():
     # Define a temporary directory for testing.
@@ -99,3 +100,23 @@ def test_initialize_embedding_model():
 
     # Assert that the returned object is an instance of HuggingFaceEmbeddings.
     assert isinstance(embeddings, HuggingFaceEmbeddings)
+
+def test_create_faiss_index():
+    # Create some dummy documents for testing.
+    documents = [
+        Document(page_content="This is the first document.", metadata={"source": "doc1.txt"}),
+        Document(page_content="This is the second document.", metadata={"source": "doc2.txt"}),
+        Document(page_content="And this is the third one.", metadata={"source": "doc3.txt"}),
+    ]
+
+    # Initialize the embedding model.
+    embeddings = initialize_embedding_model()
+
+    # Create the FAISS index.
+    faiss_index = create_faiss_index(documents, embeddings)
+
+    # Assert that the returned object is a FAISS instance.
+    assert isinstance(faiss_index, FAISS)
+
+    # Assert that the index contains the correct number of vectors.
+    assert faiss_index.index.ntotal == len(documents)
