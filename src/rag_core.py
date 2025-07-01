@@ -126,6 +126,41 @@ def create_faiss_index(documents: List[Document], embeddings: HuggingFaceEmbeddi
     vector_store = FAISS.from_documents(documents, embeddings)
     return vector_store
 
+# This function saves a FAISS index to disk.
+# Persisting the index avoids re-embedding all documents on every application restart.
+def save_faiss_index(faiss_index: FAISS, path: str):
+    """
+    Saves a FAISS index to the specified path.
+
+    Args:
+        faiss_index (FAISS): The FAISS index to save.
+        path (str): The file path where the index will be saved.
+    """
+    # Ensure the directory for the save path exists.
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    # Save the FAISS index to disk.
+    faiss_index.save_local(path)
+
+# This function loads a FAISS index from disk.
+# It requires the embedding model to be the same as the one used for creation.
+def load_faiss_index(path: str, embeddings: HuggingFaceEmbeddings) -> FAISS:
+    """
+    Loads a FAISS index from the specified path.
+
+    Args:
+        path (str): The file path from which to load the index.
+        embeddings (HuggingFaceEmbeddings): The embedding model used to create the index.
+
+    Returns:
+        FAISS: The loaded FAISS index object.
+    """
+    # Ensure the index file exists before attempting to load.
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"FAISS index not found at: {path}")
+    # Load the FAISS index from disk.
+    faiss_index = FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
+    return faiss_index
+
 # Initialize the embedding model upon module load.
 embedding_model = initialize_embedding_model()
 

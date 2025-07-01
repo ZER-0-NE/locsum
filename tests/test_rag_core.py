@@ -1,6 +1,7 @@
 import os
 import shutil
-from src.rag_core import load_documents_from_directory, chunk_documents, initialize_embedding_model, create_faiss_index
+import tempfile
+from src.rag_core import load_documents_from_directory, chunk_documents, initialize_embedding_model, create_faiss_index, save_faiss_index, load_faiss_index
 from langchain_core.documents import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -120,3 +121,60 @@ def test_create_faiss_index():
 
     # Assert that the index contains the correct number of vectors.
     assert faiss_index.index.ntotal == len(documents)
+
+def test_save_load_faiss_index():
+    # Create a temporary directory to save the FAISS index.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        index_path = os.path.join(tmpdir, "test_faiss_index")
+
+        # Create some dummy documents for the index.
+        documents = [
+            Document(page_content="Apple is a fruit.", metadata={"id": 1}),
+            Document(page_content="Banana is yellow.", metadata={"id": 2}),
+            Document(page_content="Cherry is red.", metadata={"id": 3}),
+        ]
+
+        # Initialize the embedding model.
+        embeddings = initialize_embedding_model()
+
+        # Create the initial FAISS index.
+        original_faiss_index = create_faiss_index(documents, embeddings)
+
+        # Save the FAISS index.
+        save_faiss_index(original_faiss_index, index_path)
+
+        # Load the FAISS index.
+        loaded_faiss_index = load_faiss_index(index_path, embeddings)
+
+        # Assert that the loaded index is a FAISS instance.
+        assert isinstance(loaded_faiss_index, FAISS)
+
+        # Assert that the loaded index has the same number of vectors as the original.
+        assert loaded_faiss_index.index.ntotal == original_faiss_index.index.ntotal
+
+        # Perform a similarity search on both indexes to ensure they are functionally equivalent.
+        query = "What fruit is red?"
+        # Get top 1 similar document from original index
+        docs_original = original_faiss_index.similarity_search(query, k=1)
+        # Get top 1 similar document from loaded index
+        docs_loaded = loaded_faiss_index.similarity_search(query, k=1)
+
+        # Assert that the content of the top retrieved document is the same.
+        assert docs_original[0].page_content == docs_loaded[0].page_content
+        # Assert that the metadata of the top retrieved document is the same.
+        assert docs_original[0].metadata == docs_loaded[0].metadata
+
+def test_load_faiss_index_nonexistent_path():
+    # Define a non-existent path for the FAISS index.
+    non_existent_path = "./non_existent_faiss_index"
+    # Initialize a dummy embedding model.
+    embeddings = initialize_embedding_model()
+
+    try:
+        # Expect a FileNotFoundError when trying to load from a non-existent path.
+        load_faiss_index(non_existent_path, embeddings)
+        # If no error is raised, fail the test.
+        assert False, "FileNotFoundError was not raised for a non-existent FAISS index path."
+    except FileNotFoundError as e:
+        # Assert that the error message is as expected.
+        assert f"FAISS index not found at: {non_existent_path}" in str(e)
