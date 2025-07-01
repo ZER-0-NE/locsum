@@ -49,6 +49,10 @@ Implemented a function `load_documents_from_directory` in `src/rag_core.py` that
 
 Implemented a function `chunk_documents` in `src/rag_core.py` that uses `langchain.text_splitter.RecursiveCharacterTextSplitter` to split loaded documents into smaller, manageable chunks. The default `chunk_size` is set to 1000 characters with a `chunk_overlap` of 200 characters. This initial choice is a common heuristic in RAG applications, aiming to balance the amount of context per chunk with the LLM's context window limitations. These parameters are configurable and can be fine-tuned for optimal performance.
 
+### Embedding Model Initialization
+
+Initialized the embedding model in `src/rag_core.py` using `langchain_community.embeddings.HuggingFaceEmbeddings`. The `all-MiniLM-L6-v2` model is used by default, configured to run on the CPU. This model converts text into numerical vector embeddings, which are crucial for similarity search in the vector store.
+
 ## Running Tests
 
 To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
