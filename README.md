@@ -51,7 +51,17 @@ Implemented a function `chunk_documents` in `src/rag_core.py` that uses `langcha
 
 ### Embedding Model Initialization
 
-Initialized the embedding model in `src/rag_core.py` using `langchain_community.embeddings.HuggingFaceEmbeddings`. The `all-MiniLM-L6-v2` model is used by default, configured to run on the CPU. This model converts text into numerical vector embeddings, which are crucial for similarity search in the vector store.
+Initialized the embedding model in `src/rag_core.py` using `langchain_community.embeddings.HuggingFaceEmbeddings`. The `all-MiniLM-L6-v2` model is used by default, configured to run on the most performant available device (CUDA > MPS > CPU). This model converts text into numerical vector embeddings, which are crucial for similarity search in the vector store.
+
+**Why `all-MiniLM-L6-v2`?**
+
+*   **Pros:**
+    *   **Efficiency:** It's a small and fast model, making it ideal for local execution and real-time embedding generation without requiring significant computational resources.
+    *   **Performance:** Despite its small size, it provides good quality embeddings for a wide range of tasks, especially for semantic similarity.
+    *   **Local Execution:** It can be run entirely offline, which is crucial for a privacy-focused personal second brain application.
+*   **Cons:**
+    *   **General Purpose:** While good, it's a general-purpose model. For highly specialized domains or very nuanced semantic understanding, larger or fine-tuned models might offer better accuracy.
+    *   **Context Window:** Like all embedding models, its effectiveness can be influenced by the length of the text being embedded. Very long documents might benefit from more advanced chunking or different embedding strategies.
 
 ## Running Tests
 
