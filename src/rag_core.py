@@ -1,6 +1,7 @@
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from typing import List
 import os
 
@@ -68,12 +69,35 @@ def chunk_documents(documents: List[Document], chunk_size: int = 1000, chunk_ove
     # Return the list of chunked Document objects.
     return chunked_documents
 
+# This function initializes the embedding model.
+# The embedding model converts text into numerical vectors (embeddings),
+# which are essential for calculating similarity between queries and documents.
+def initialize_embedding_model():
+    """
+    Initializes the HuggingFace embedding model.
+
+    Returns:
+        HuggingFaceEmbeddings: An initialized HuggingFaceEmbeddings object.
+    """
+    # Use a pre-trained sentence-transformer model. 'all-MiniLM-L6-v2' is a good default
+    # for its balance of performance and size, suitable for local execution.
+    # The model is downloaded and loaded locally.
+    model_name = "all-MiniLM-L6-v2"
+    model_kwargs = {'device': 'cpu'} # Specify to run on CPU, as GPU might not always be available.
+    encode_kwargs = {'normalize_embeddings': False} # Normalizing embeddings can be beneficial for cosine similarity.
+
+    # Initialize the HuggingFaceEmbeddings object.
+    # This object will be used to generate embeddings for text.
+    embeddings = HuggingFaceEmbeddings(
+        model_name=model_name,
+        model_kwargs=model_kwargs,
+        encode_kwargs=encode_kwargs
+    )
+    return embeddings
+
 # Placeholder for the embedding model.
-# This section will be replaced with actual embedding model initialization
-# (e.g., Hugging Face Sentence-Transformers) in a later step.
-# The embedding model is crucial for converting text into numerical vectors,
-# which are then used for similarity search in the vector store.
-embedding_model = None  # To be initialized later with a specific model
+# This variable will hold the initialized embedding model.
+embedding_model = initialize_embedding_model() # Initialize the embedding model upon module load.
 
 # Placeholder for the FAISS vector store.
 # This section will be replaced with actual FAISS index creation and management

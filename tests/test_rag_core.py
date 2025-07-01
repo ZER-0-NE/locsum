@@ -1,7 +1,8 @@
 import os
 import shutil
-from src.rag_core import load_documents_from_directory, chunk_documents
+from src.rag_core import load_documents_from_directory, chunk_documents, initialize_embedding_model
 from langchain_core.documents import Document
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 def test_load_documents_from_directory():
     # Define a temporary directory for testing.
@@ -88,3 +89,13 @@ def test_chunk_documents():
 
     # Removed strict overlap assertion as RecursiveCharacterTextSplitter does not guarantee exact substring overlap.
     # The primary goal is to ensure documents are chunked and metadata is preserved.
+
+def test_initialize_embedding_model():
+    # Call the function to initialize the embedding model.
+    embeddings = initialize_embedding_model()
+
+    # Assert that the returned object is not None.
+    assert embeddings is not None
+
+    # Assert that the returned object is an instance of HuggingFaceEmbeddings.
+    assert isinstance(embeddings, HuggingFaceEmbeddings)
