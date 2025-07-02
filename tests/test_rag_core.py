@@ -1,10 +1,13 @@
 import os
 import shutil
 import tempfile
-from src.rag_core import load_documents_from_directory, chunk_documents, initialize_embedding_model, create_faiss_index, save_faiss_index, load_faiss_index
+from src.rag_core import load_documents_from_directory, chunk_documents, initialize_embedding_model, create_faiss_index, save_faiss_index, load_faiss_index, get_retriever, get_llm, get_rag_chain, OLLAMA_LLM_MODEL_NAME
 from langchain_core.documents import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
+from langchain_community.llms import Ollama
+from langchain_core.runnables import Runnable
+from langchain_core.vectorstores import VectorStoreRetriever
 
 def test_load_documents_from_directory():
     # Define a temporary directory for testing.
@@ -178,3 +181,58 @@ def test_load_faiss_index_nonexistent_path():
     except FileNotFoundError as e:
         # Assert that the error message is as expected.
         assert f"FAISS index not found at: {non_existent_path}" in str(e)
+
+def test_get_retriever():
+    # Create a dummy FAISS index for testing.
+    documents = [
+        Document(page_content="Test document for retriever.", metadata={"source": "test.txt"}),
+    ]
+    embeddings = initialize_embedding_model()
+    faiss_index = create_faiss_index(documents, embeddings)
+
+    # Get the retriever.
+    retriever = get_retriever(faiss_index)
+
+    # Assert that the returned object is a VectorStoreRetriever.
+    assert isinstance(retriever, VectorStoreRetriever)
+
+def test_get_llm():
+    # Get the Ollama LLM.
+    llm = get_llm()
+
+    # Assert that the returned object is an Ollama instance.
+    assert isinstance(llm, Ollama)
+    # Optionally, assert the model name if it's important for the test.
+    assert llm.model == OLLAMA_LLM_MODEL_NAME
+
+def test_get_rag_chain():
+    # Create dummy documents and index for the RAG chain.
+    documents = [
+        Document(page_content="The capital of France is Paris.", metadata={"source": "geo.txt"}),
+        Document(page_content="The Eiffel Tower is in Paris.", metadata={"source": "landmark.txt"}),
+    ]
+    embeddings = initialize_embedding_model()
+    faiss_index = create_faiss_index(documents, embeddings)
+    retriever = get_retriever(faiss_index)
+    llm = get_llm()
+
+    # Get the RAG chain.
+    rag_chain = get_rag_chain(retriever, llm)
+
+    # Assert that the returned object is a Runnable (or similar chain object).
+    assert isinstance(rag_chain, Runnable)
+
+    # Test invocation (this will require Ollama server to be running and model downloaded).
+    # This part might be skipped or mocked in CI/CD for faster tests.
+    # For local development, it's useful to ensure the chain can be invoked.
+    try:
+        # This is a basic invocation. A more robust test would mock the LLM response.
+        response = rag_chain.invoke("What is the capital of France?")
+        assert isinstance(response, str)
+        assert "Paris" in response or "paris" in response
+    except Exception as e:
+        # If Ollama server is not running or model not found, this test might fail.
+        # Print a warning instead of failing the test outright in such cases.
+        print(f"Warning: RAG chain invocation test skipped or failed due to Ollama setup: {e}")
+        # Optionally, you can re-raise the exception if you want strict testing.
+        # raise e

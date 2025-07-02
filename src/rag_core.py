@@ -3,6 +3,10 @@ from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS # Import FAISS for vector store
+from langchain_community.llms import Ollama # Import Ollama for local LLM
+from langchain_core.runnables import RunnablePassthrough # For creating RAG chain
+from langchain_core.output_parsers import StrOutputParser # For parsing LLM output
+from langchain_core.prompts import ChatPromptTemplate # For creating chat prompts
 from typing import List
 import os
 import torch # Import torch to check for GPU availability
@@ -10,6 +14,10 @@ import torch # Import torch to check for GPU availability
 # Define the global constant for the embedding model name.
 # This allows for easy modification of the model used across the application.
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+
+# Define the global constant for the Ollama LLM model name.
+# This allows for easy modification of the LLM used across the application.
+OLLAMA_LLM_MODEL_NAME = "llama3" # Default to llama3, can be changed
 
 # This function is responsible for loading documents from a specified directory.
 # It is designed to be modular, allowing for future integration with an Obsidian MCP server.
@@ -160,6 +168,70 @@ def load_faiss_index(path: str, embeddings: HuggingFaceEmbeddings) -> FAISS:
     # Load the FAISS index from disk.
     faiss_index = FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
     return faiss_index
+
+# This function creates a retriever from a FAISS vector store.
+# The retriever is responsible for fetching relevant documents based on a query.
+def get_retriever(faiss_index: FAISS):
+    """
+    Creates a retriever from a FAISS vector store.
+
+    Args:
+        faiss_index (FAISS): The FAISS vector store.
+
+    Returns:
+        VectorStoreRetriever: A LangChain VectorStoreRetriever object.
+    """
+    # Convert the FAISS index into a retriever.
+    # The 'as_retriever()' method allows the vector store to be used for document retrieval.
+    retriever = faiss_index.as_retriever()
+    return retriever
+
+# This function initializes the Ollama LLM.
+# Ollama allows running large language models locally.
+def get_llm():
+    """
+    Initializes the Ollama Large Language Model.
+
+    Returns:
+        Ollama: An initialized Ollama LLM object.
+    """
+    # Initialize the Ollama LLM with the specified model name.
+    # Ensure that the Ollama server is running and the model is downloaded.
+    llm = Ollama(model=OLLAMA_LLM_MODEL_NAME)
+    return llm
+
+# This function constructs the RAG (Retrieval Augmented Generation) chain.
+# The chain combines document retrieval with LLM generation to answer queries.
+def get_rag_chain(retriever, llm):
+    """
+    Constructs the RAG (Retrieval Augmented Generation) chain.
+
+    Args:
+        retriever: The document retriever (e.g., from FAISS).
+        llm: The Large Language Model (e.g., Ollama).
+
+    Returns:
+        Runnable: A LangChain Runnable object representing the RAG chain.
+    """
+    # Define the prompt template for the LLM.
+    # The prompt guides the LLM to use the provided context for answering the question.
+    template = """Answer the question based only on the following context:
+{context}
+
+Question: {question}
+"""
+    prompt = ChatPromptTemplate.from_template(template)
+
+    # Construct the RAG chain using LangChain's LCEL (LangChain Expression Language).
+    # The chain first retrieves relevant documents, then formats them into the prompt,
+    # passes the prompt to the LLM, and finally parses the LLM's output.
+    rag_chain = (
+        {"context": retriever, "question": RunnablePassthrough()} # Retrieve context and pass through question
+        | prompt # Apply the prompt template
+        | llm # Invoke the LLM
+        | StrOutputParser() # Parse the LLM's output to a string
+    )
+    return rag_chain
 
 # Initialize the embedding model upon module load.
 embedding_model = initialize_embedding_model()
