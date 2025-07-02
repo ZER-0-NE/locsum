@@ -1,0 +1,1 @@
+This is a test note about the capital of France, which is Paris. The Eiffel Tower is a famous landmark in Paris.
