@@ -79,6 +79,13 @@ Implemented functions in `src/rag_core.py` to set up the retrieval and generatio
 *   `get_llm`: Initializes and returns an Ollama LLM instance (defaulting to `llama3`), enabling local execution of large language models.
 *   `get_rag_chain`: Constructs the complete RAG chain using LangChain Expression Language (LCEL). This chain orchestrates the retrieval of documents, formats them into a prompt, passes the prompt to the LLM, and parses the LLM's output to generate a coherent response.
 
+## FastAPI Integration
+
+Integrated the RAG components into the FastAPI application (`src/app.py`):
+
+*   **`/query` Endpoint:** A new POST endpoint `/query` has been added to accept user queries. It utilizes the RAG chain to process the query and return a relevant response.
+*   **Startup Logic:** On application startup, the FastAPI application now attempts to load the FAISS index from a predefined path (`./faiss_index`). If the index is not found, it automatically loads documents from a dummy directory (representing an Obsidian vault), chunks them, creates a new FAISS index, and saves it for future use. This ensures the RAG system is ready to serve queries upon startup.
+
 ## Running Tests
 
 To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
