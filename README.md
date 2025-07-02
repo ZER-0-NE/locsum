@@ -71,6 +71,14 @@ Implemented a function `create_faiss_index` in `src/rag_core.py` that takes a li
 
 Added functions `save_faiss_index` and `load_faiss_index` in `src/rag_core.py` to handle the persistence of the FAISS index to disk. This allows the application to save the generated index and load it later, avoiding the need to re-embed all documents on every restart. This significantly improves startup time and efficiency for repeated use.
 
+### Retrieval and Generation
+
+Implemented functions in `src/rag_core.py` to set up the retrieval and generation components of the RAG system:
+
+*   `get_retriever`: Creates a LangChain `VectorStoreRetriever` from the FAISS index, responsible for fetching relevant documents based on a query.
+*   `get_llm`: Initializes and returns an Ollama LLM instance (defaulting to `llama3`), enabling local execution of large language models.
+*   `get_rag_chain`: Constructs the complete RAG chain using LangChain Expression Language (LCEL). This chain orchestrates the retrieval of documents, formats them into a prompt, passes the prompt to the LLM, and parses the LLM's output to generate a coherent response.
+
 ## Running Tests
 
 To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
