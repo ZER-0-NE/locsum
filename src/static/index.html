@@ -4,18 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>locsum</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>locsum</h1>
-        <p>Your local, personal second brain.</p>
-        <form id="query-form">
-            <input type="text" id="query-input" placeholder="Ask a question..." required>
-            <button type="submit">Ask</button>
-        </form>
-        <div id="response-container"></div>
+        <h1>locsum - Local Second Brain</h1>
+        <div class="chat-window">
+            <div id="response-container"></div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="query-input" placeholder="Ask me anything...">
+            <button id="submit-button">Send</button>
+        </div>
     </div>
-    <script src="script.js"></script>
+    <script src="/static/script.js"></script>
 </body>
 </html>

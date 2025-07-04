@@ -2,22 +2,92 @@ from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS # Import FAISS for vector store
-from langchain_community.llms import Ollama # Import Ollama for local LLM
-from langchain_core.runnables import RunnablePassthrough # For creating RAG chain
-from langchain_core.output_parsers import StrOutputParser # For parsing LLM output
-from langchain_core.prompts import ChatPromptTemplate # For creating chat prompts
-from typing import List
+from langchain_community.vectorstores import FAISS
+from langchain_community.llms import Ollama
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from typing import List, Dict, Any
 import os
-import torch # Import torch to check for GPU availability
+import torch
+import hashlib
+import json
 
 # Define the global constant for the embedding model name.
-# This allows for easy modification of the model used across the application.
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+EMBEDDING_MODEL_NAME = "all-mpnet-base-v2"
 
 # Define the global constant for the Ollama LLM model name.
-# This allows for easy modification of the LLM used across the application.
-OLLAMA_LLM_MODEL_NAME = "llama3" # Default to llama3, can be changed
+OLLAMA_LLM_MODEL_NAME = "llama3"
+
+def create_index_manifest(documents: List[Document], chunk_size: int, chunk_overlap: int) -> Dict[str, Any]:
+    """
+    Creates a manifest dictionary containing a signature of the data and configuration.
+
+    Args:
+        documents (List[Document]): The list of documents to be indexed.
+        chunk_size (int): The chunk size used for splitting documents.
+        chunk_overlap (int): The chunk overlap used for splitting documents.
+
+    Returns:
+        Dict[str, Any]: A dictionary representing the manifest.
+    """
+    # Hash the content of the rag_core.py file itself to detect code changes.
+    with open(__file__, 'rb') as f:
+        rag_core_hash = hashlib.md5(f.read()).hexdigest()
+
+    # Create a hash of all document content.
+    # Sorting by page content ensures a consistent hash regardless of document order.
+    doc_content_str = "".join(sorted([doc.page_content for doc in documents]))
+    data_hash = hashlib.md5(doc_content_str.encode()).hexdigest()
+
+    return {
+        "data_hash": data_hash,
+        "rag_core_hash": rag_core_hash,
+        "embedding_model": EMBEDDING_MODEL_NAME,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap
+    }
+
+def generate_directory_summary(directory_path: str) -> Document:
+    """
+    Walks a directory to create a text summary of its structure and file contents.
+
+    Args:
+        directory_path (str): The absolute path to the directory to summarize.
+
+    Returns:
+        Document: A LangChain Document object containing the summary.
+    """
+    summary_lines = ["# Vault Structure Summary", "This document provides a summary of the files and folders in the vault."]
+    dir_file_counts = {}
+
+    for root, dirs, files in os.walk(directory_path):
+        # Don't include the root directory itself in the summary
+        if root == directory_path:
+            continue
+        
+        # Get relative path from the vault root
+        relative_path = os.path.relpath(root, directory_path)
+        dir_file_counts[relative_path] = {
+            'file_count': 0,
+            'files': []
+        }
+
+        for file in files:
+            if file.endswith('.md'):
+                dir_file_counts[relative_path]['file_count'] += 1
+                dir_file_counts[relative_path]['files'].append(file)
+
+    for path, data in sorted(dir_file_counts.items()):
+        if data['file_count'] > 0:
+            summary_lines.append(f"\n## Directory: {path}")
+            summary_lines.append(f"- Contains {data['file_count']} markdown file(s).")
+            summary_lines.append("- Files:")
+            for file_name in sorted(data['files']):
+                summary_lines.append(f"  - {file_name}")
+
+    summary_content = "\n".join(summary_lines)
+    return Document(page_content=summary_content, metadata={"source": "Generated Directory Summary"})
 
 # This function is responsible for loading documents from a specified directory.
 # It is designed to be modular, allowing for future integration with an Obsidian MCP server.
@@ -55,7 +125,7 @@ def load_documents_from_directory(directory_path: str) -> List[Document]:
 # and smaller chunks allow for more precise retrieval.
 def chunk_documents(documents: List[Document], chunk_size: int = 1000, chunk_overlap: int = 200) -> List[Document]:
     """
-    Splits a list of documents into smaller chunks.
+    Splits a list of documents into smaller chunks and prepends metadata to each chunk.
 
     Args:
         documents (List[Document]): A list of LangChain Document objects to be chunked.
@@ -63,7 +133,7 @@ def chunk_documents(documents: List[Document], chunk_size: int = 1000, chunk_ove
         chunk_overlap (int): The number of characters to overlap between consecutive chunks.
 
     Returns:
-        List[Document]: A list of chunked LangChain Document objects.
+        List[Document]: A list of chunked LangChain Document objects with metadata prepended.
     """
     # Initialize the RecursiveCharacterTextSplitter.
     # This splitter attempts to split text in a way that keeps sentences and paragraphs together,
@@ -80,8 +150,15 @@ def chunk_documents(documents: List[Document], chunk_size: int = 1000, chunk_ove
     # and applies the splitting logic.
     chunked_documents = text_splitter.split_documents(documents)
 
+    # Prepend metadata to the content of each chunk.
+    # This makes the file path and other metadata searchable within the RAG system.
+    for chunk in chunked_documents:
+        source_path = chunk.metadata.get('source', 'Unknown Source')
+        chunk.page_content = f"Source: {source_path}\n\n{chunk.page_content}"
+
     # Return the list of chunked Document objects.
     return chunked_documents
+
 
 # This function initializes the embedding model.
 # The embedding model converts text into numerical vectors (embeddings),

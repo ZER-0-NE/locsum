@@ -35,6 +35,37 @@ This project aims to create a local, personal second brain using a Retrieval Aug
     pip install -r requirements.txt
     ```
 
+5.  **Ollama Setup:**
+    This project uses Ollama for local LLM inference. Ensure Ollama is installed and running.
+
+    *   **Start Ollama Server:** Open a new terminal and run:
+        ```bash
+        ollama serve
+        ```
+        Keep this terminal open as long as you are running the `locsum` application.
+
+    *   **Download LLM Model:** Download the `llama3` model (or your preferred model) using Ollama:
+        ```bash
+        ollama pull llama3
+        ```
+
+6.  **Configure Obsidian Vault Path:**
+    Set the `OBSIDIAN_VAULT_PATH` environment variable to the absolute path of your Obsidian vault. This is crucial for the RAG system to load your notes.
+    ```bash
+    export OBSIDIAN_VAULT_PATH="/path/to/your/obsidian/vault"
+    # Example: export OBSIDIAN_VAULT_PATH="/Users/youruser/Documents/Second brain"
+    ```
+    *Note: Replace `/path/to/your/obsidian/vault` with the actual path to your Obsidian notes. This variable needs to be set in every terminal session where you run the FastAPI application.*
+
+7.  **Run the FastAPI Application:**
+    Start the FastAPI application. It will automatically build the FAISS index from your Obsidian notes if it doesn't exist.
+    ```bash
+    uvicorn src.app:app --reload
+    ```
+
+8.  **Access the Frontend:**
+    Open your web browser and navigate to `http://127.0.0.1:8000/` to interact with the application.
+
 ## FastAPI Application Setup
 
 A basic FastAPI application has been set up in `src/app.py` with a health check endpoint.
@@ -45,31 +76,58 @@ A basic FastAPI application has been set up in `src/app.py` with a health check 
 
 Implemented a function `load_documents_from_directory` in `src/rag_core.py` that uses `langchain_community.document_loaders.DirectoryLoader` to load markdown files from a specified directory. This function returns a list of `langchain_core.documents.Document` objects.
 
+### Directory Structure Summary
+
+To enable the RAG system to answer questions about the vault's structure (e.g., "How many files are in the 'Books' directory?"), a special summary document is generated on startup. This document contains a text-based representation of the entire directory tree, including folder names, file counts per folder, and the names of the files. This summary is then indexed along with the actual notes, giving the LLM the necessary context to answer questions about the vault's layout.
+
 ### Document Chunking
 
 Implemented a function `chunk_documents` in `src/rag_core.py` that uses `langchain.text_splitter.RecursiveCharacterTextSplitter` to split loaded documents into smaller, manageable chunks. The default `chunk_size` is set to 1000 characters with a `chunk_overlap` of 200 characters. This initial choice is a common heuristic in RAG applications, aiming to balance the amount of context per chunk with the LLM's context window limitations. These parameters are configurable and can be fine-tuned for optimal performance.
 
 ### Embedding Model Initialization
 
-Initialized the embedding model in `src/rag_core.py` using `langchain_community.embeddings.HuggingFaceEmbeddings`. The `all-MiniLM-L6-v2` model is used by default, configured to run on the most performant available device (CUDA > MPS > CPU). This model converts text into numerical vector embeddings, which are crucial for similarity search in the vector store.
+Initialized the embedding model in `src/rag_core.py` using `langchain_community.embeddings.HuggingFaceEmbeddings`. The `all-mpnet-base-v2` model is used by default, configured to run on the most performant available device (CUDA > MPS > CPU). This model converts text into numerical vector embeddings, which are crucial for similarity search in the vector store.
 
-**Why `all-MiniLM-L6-v2`?**
+**Why `all-mpnet-base-v2`?**
 
 *   **Pros:**
-    *   **Efficiency:** It's a small and fast model, making it ideal for local execution and real-time embedding generation without requiring significant computational resources.
-    *   **Performance:** Despite its small size, it provides good quality embeddings for a wide range of tasks, especially for semantic similarity.
+    *   **High Performance:** It is a larger and more powerful model than `all-MiniLM-L6-v2`, offering better performance on a wide range of tasks. It is one of the top-performing sentence-transformer models.
     *   **Local Execution:** It can be run entirely offline, which is crucial for a privacy-focused personal second brain application.
 *   **Cons:**
-    *   **General Purpose:** While good, it's a general-purpose model. For highly specialized domains or very nuanced semantic understanding, larger or fine-tuned models might offer better accuracy.
-    *   **Context Window:** Like all embedding models, its effectiveness can be influenced by the length of the text being embedded. Very long documents might benefit from more advanced chunking or different embedding strategies.
+    *   **Resource Intensive:** Being a larger model, it requires more computational resources (RAM and VRAM) and is slower than smaller models like `all-MiniLM-L6-v2`.
 
 ### FAISS Vector Store Setup
 
 Implemented a function `create_faiss_index` in `src/rag_core.py` that takes a list of documents and the initialized embedding model to create a FAISS vector store. FAISS (Facebook AI Similarity Search) is used for efficient similarity search of vector embeddings, enabling fast retrieval of relevant documents based on query embeddings.
 
-### FAISS Index Persistence
+### FAISS Index Persistence with Blue-Green Deployments
 
-Added functions `save_faiss_index` and `load_faiss_index` in `src/rag_core.py` to handle the persistence of the FAISS index to disk. This allows the application to save the generated index and load it later, avoiding the need to re-embed all documents on every restart. This significantly improves startup time and efficiency for repeated use.
+To ensure zero downtime, the application manages its FAISS vector index using a blue-green deployment strategy. This provides a seamless experience, even when your notes have changed and a full re-indexing is required.
+
+#### How It Works
+
+1.  **Two Index Directories:** The system maintains two separate index directories: `faiss_index_A` (blue) and `faiss_index_B` (green).
+2.  **State Management:** A single state file, `index_state.json`, keeps track of which index is currently "live" (blue) and which is the candidate for the next switch (green).
+3.  **Zero-Downtime Startup:** On startup, the application immediately loads the current blue index and becomes ready to serve queries. There is no waiting for indexing to complete.
+4.  **Background Rebuilding:** After startup, a background task automatically checks if the notes or configuration have changed. If they have, it builds a completely new index in the inactive (green) directory without interrupting the live service.
+5.  **User-Controlled Switchover:** Once the green index is built, it is marked as "ready." The user can then trigger a switchover via an API call, promoting the new green index to become the live blue index. This switch is instantaneous.
+
+This approach guarantees that the application is always responsive and serving queries from a valid index, while new or updated indexes are built safely in the background.
+
+#### Managing the Index
+
+You can monitor and manage the index state using the following API endpoints:
+
+*   **`GET /index-status`**: Check the current status of the blue and green indexes.
+    *   **Response:**
+        ```json
+        {
+          "blue_index": "A",
+          "green_index": "B",
+          "green_index_ready_for_swap": true
+        }
+        ```
+*   **`POST /switch-index`**: Promotes the ready green index to be the new live blue index. This is the action that would be triggered by a "Use New Index" button in a UI.
 
 ### Retrieval and Generation
 
