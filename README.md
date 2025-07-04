@@ -153,10 +153,18 @@ Integrated the RAG components into the FastAPI application (`src/app.py`):
 *   **`/query` Endpoint:** A new POST endpoint `/query` has been added to accept user queries. It utilizes the RAG chain to process the query and return a relevant response.
 *   **Startup Logic:** On application startup, the FastAPI application now attempts to load the FAISS index from a predefined path (`./faiss_index`). If the index is not found, it automatically loads documents from a dummy directory (representing an Obsidian vault), chunks them, creates a new FAISS index, and saves it for future use. This ensures the RAG system is ready to serve queries upon startup.
 
+## Code Formatting and Linting
+
+This project uses `black` for code formatting. To format the code, ensure your virtual environment is activated and run:
+
+```bash
+.venv/bin/black src tests
+```
+
 ## Running Tests
 
 To run the unit tests for the FastAPI application and RAG core, ensure your virtual environment is activated and run:
 
 ```bash
-export PYTHONPATH=$(pwd) && pytest tests/
+.venv/bin/pytest
 ```
