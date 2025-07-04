@@ -1,15 +1,15 @@
 # locsum
 
-This project aims to create a local, personal second brain using a Retrieval Augmented Generation (RAG) system. It will allow users to interact with their personal notes (initially from Obsidian) using natural language queries.
+This project aims to create a local, personal second brain using a Retrieval Augmented Generation (RAG) system. It allows users to interact with their personal notes (initially from Obsidian) using natural language queries.
 
 ## Technologies Used
 
 *   **Backend Framework:** Python with FastAPI
 *   **LLM Orchestration:** LangChain
-*   **Local LLM Provider:** Ollama (planned)
-*   **Embedding Model:** Hugging Face Sentence-Transformers (planned)
-*   **Vector Store:** FAISS (planned)
-*   **Frontend:** Plain HTML, CSS, and JavaScript (planned)
+*   **Local LLM Provider:** Ollama
+*   **Embedding Model:** Hugging Face Sentence-Transformers
+*   **Vector Store:** FAISS
+*   **Frontend:** Plain HTML, CSS, and JavaScript
 *   **Web Search Integration:** Tavily Search API (planned)
 
 ## Project Setup and Environment Configuration
@@ -60,10 +60,9 @@ This project aims to create a local, personal second brain using a Retrieval Aug
 7.  **Run the FastAPI Application:**
     Start the FastAPI application. It will automatically build the FAISS index from your Obsidian notes if it doesn't exist.
     ```bash
-    ```bash
 uvicorn src.app:app --reload --reload-exclude "faiss_index_A/" --reload-exclude "faiss_index_B/" --reload-exclude "index_state.json"
-```
-    ```
+     ```
+    *Note: If `--reload-exclude` warnings appear, ensure `watchfiles` is installed (`pip install watchfiles`).*
 
 8.  **Access the Frontend:**
     Open your web browser and navigate to `http://127.0.0.1:8000/` to interact with the application.
@@ -112,7 +111,7 @@ To ensure zero downtime, the application manages its FAISS vector index using a 
 2.  **State Management:** A single state file, `index_state.json`, keeps track of which index is currently "live" (blue) and which is the candidate for the next switch (green).
 3.  **Zero-Downtime Startup:** On startup, the application immediately loads the current blue index and becomes ready to serve queries. There is no waiting for indexing to complete.
 4.  **Background Rebuilding:** After startup, a background task automatically checks if the notes or configuration have changed. If they have, it builds a completely new index in the inactive (green) directory without interrupting the live service.
-5.  **User-Controlled Switchover:** Once the green index is built, it is marked as "ready." The user can then trigger a switchover via an API call, promoting the new green index to become the live blue index. This switch is instantaneous.
+5.  **User-Controlled Switchover:** Once the green index is built, it is marked as "ready." The user can then trigger a switchover via an API call, promoting the new green index to become the live blue index. This switch is instantaneous and allows toggling between available indexes.
 
 This approach guarantees that the application is always responsive and serving queries from a valid index, while new or updated indexes are built safely in the background.
 
@@ -126,7 +125,8 @@ You can monitor and manage the index state using the following API endpoints:
         {
           "blue_index": "A",
           "green_index": "B",
-          "green_index_ready_for_swap": true
+          "green_index_ready_for_swap": true,
+          "green_index_building": false
         }
         ```
 *   **`POST /switch-index`**: Promotes the ready green index to be the new live blue index. This is the action that would be triggered by a "Use New Index" button in a UI.
@@ -135,8 +135,9 @@ You can monitor and manage the index state using the following API endpoints:
 
 The frontend (`src/static/index.html` and `src/static/script.js`) has been updated to provide a visual interface for this blue-green deployment:
 
-*   **Status Bar:** A status bar at the top of the UI displays the current active index (e.g., "Active (A)") and indicates if a new index is ready for activation.
-*   **"Switch to New Index" Button:** This button appears automatically when a new index has been successfully built in the background and is ready to be promoted. Clicking it triggers the `/switch-index` API call, making the new index live.
+*   **Dynamic Status Bar:** A status bar at the top of the UI dynamically displays the current active index, indicates if a new index is being built, or if a new index is ready for activation. It uses color-coding and a pulsing animation for clarity.
+*   **Manual Refresh Button:** Instead of continuous polling, a refresh button (↺) is provided to manually update the index status.
+*   **"Switch Index" Button:** This button appears automatically when a new index has been successfully built in the background and is ready to be promoted. Its text dynamically updates to show which index you will switch to (e.g., "Switch to Index B"). Clicking it triggers the `/switch-index` API call, making the new index live and allowing toggling between available indexes.
 
 ### Retrieval and Generation
 

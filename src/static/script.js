@@ -3,8 +3,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const queryInput = document.getElementById('query-input');
     const submitButton = document.getElementById('submit-button');
     const responseContainer = document.getElementById('response-container');
+    const statusBar = document.getElementById('status-bar');
+    const indexStatusIcon = document.getElementById('index-status-icon');
     const indexStatusText = document.getElementById('index-status-text');
     const switchIndexButton = document.getElementById('switch-index-button');
+    const refreshStatusButton = document.getElementById('refresh-status-button');
+
+    const setInitialStatus = () => {
+        statusBar.classList.add('status-building');
+        indexStatusText.textContent = 'Initializing...';
+        switchIndexButton.classList.add('hidden');
+    };
 
     // Function to update index status
     const updateIndexStatus = async () => {
@@ -20,28 +29,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             console.log('Parsed JSON data:', data);
 
-            indexStatusText.textContent = `Index Status: Active (${data.blue_index.toUpperCase()})`;
+            // Remove all status classes first
+            statusBar.classList.remove('status-building', 'status-ready', 'status-synced');
 
-            if (data.green_index_ready_for_swap) {
-                switchIndexButton.classList.remove('hidden');
-                switchIndexButton.disabled = false; // Ensure button is enabled if ready
-                indexStatusText.textContent += ` (New index ${data.green_index.toUpperCase()} ready!)`;
-            } else {
+            if (data.green_index_building) {
+                statusBar.classList.add('status-building');
+                indexStatusText.textContent = `Building Index (${data.green_index.toUpperCase()})...`;
                 switchIndexButton.classList.add('hidden');
-                switchIndexButton.disabled = true; // Ensure button is disabled if not ready
-                indexStatusText.textContent += ` (No new index ready)`;
+            } else if (data.green_index_ready_for_swap) {
+                statusBar.classList.add('status-ready');
+                indexStatusText.textContent = `Index ${data.blue_index.toUpperCase()} is Active`;
+                switchIndexButton.textContent = `Switch to Index ${data.green_index.toUpperCase()}`;
+                switchIndexButton.classList.remove('hidden');
+                switchIndexButton.disabled = false;
+            } else {
+                statusBar.classList.add('status-synced');
+                indexStatusText.textContent = `Index ${data.blue_index.toUpperCase()} is Active`;
+                switchIndexButton.classList.add('hidden');
+                switchIndexButton.disabled = true;
             }
         } catch (error) {
             console.error('Error fetching index status:', error);
-            indexStatusText.textContent = 'Index Status: Error - Check console';
+            statusBar.classList.add('status-error'); // Add a visual indicator for error
+            indexStatusText.textContent = 'Status: Error - Check console';
             switchIndexButton.classList.add('hidden');
             switchIndexButton.disabled = true;
         }
     };
 
-    // Initial status update and then poll every 5 seconds
-    updateIndexStatus();
-    setInterval(updateIndexStatus, 5000);
+    // Set initial status, then update
+    setInitialStatus();
+    setTimeout(updateIndexStatus, 500); // Initial fetch
+
+    // Event listener for the refresh button
+    refreshStatusButton.addEventListener('click', updateIndexStatus);
 
     // Event listener for the switch index button
     switchIndexButton.addEventListener('click', async () => {
@@ -52,15 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/switch-index', {
                 method: 'POST',
             });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to switch index');
+            }
             const data = await response.json();
-            alert(data.message);
-            updateIndexStatus(); // Update status after switch
+            console.log(data.message);
+            // Immediately trigger a status update to reflect the change
+            await updateIndexStatus(); 
         } catch (error) {
             console.error('Error switching index:', error);
-            alert('Failed to switch index. Check console for details.');
-        } finally {
-            switchIndexButton.disabled = false;
-            switchIndexButton.textContent = 'Switch to New Index';
+            alert(`Error: ${error.message}`);
+            // Re-enable button on failure to allow retry
+            await updateIndexStatus(); // Refresh status to show the correct state
         }
     });
 

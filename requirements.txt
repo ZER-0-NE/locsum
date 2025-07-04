@@ -9,3 +9,4 @@ tavily-python
 pytest
 httpx
 langchain-community
+watchfiles

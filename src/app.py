@@ -30,6 +30,7 @@ class IndexState:
         self.blue = "A"
         self.green = "B"
         self.green_ready = False
+        self.green_building = False
         self.load()
 
     def load(self):
@@ -39,6 +40,7 @@ class IndexState:
                 self.blue = state.get("blue", "A")
                 self.green = state.get("green", "B")
                 self.green_ready = state.get("green_ready", False)
+                self.green_building = state.get("green_building", False)
 
     def save(self):
         with open(INDEX_STATE_FILE, 'w') as f:
@@ -46,7 +48,9 @@ class IndexState:
 
     def switch(self):
         self.blue, self.green = self.green, self.blue
-        self.green_ready = False
+        # After switching, the new green (the old blue) is immediately ready for a switch-back.
+        # The background task will check if it's stale, but it is ready.
+        self.green_ready = True 
         self.save()
 
     def get_blue_path(self):
@@ -89,6 +93,8 @@ async def rebuild_index_background(app: FastAPI):
 
     if rebuild_needed:
         print("BACKGROUND: Green index is stale or missing. Rebuilding...")
+        index_state.green_building = True
+        index_state.save()
         if os.path.exists(green_path):
             shutil.rmtree(green_path)
         
@@ -99,6 +105,7 @@ async def rebuild_index_background(app: FastAPI):
             json.dump(current_manifest, f, indent=4)
         
         index_state.green_ready = True
+        index_state.green_building = False
         index_state.save()
         print(f"BACKGROUND: Successfully rebuilt green index at {green_path}")
 
@@ -156,7 +163,8 @@ async def get_index_status():
     return {
         "blue_index": index_state.blue,
         "green_index": index_state.green,
-        "green_index_ready_for_swap": index_state.green_ready
+        "green_index_ready_for_swap": index_state.green_ready,
+        "green_index_building": index_state.green_building
     }
 
 @app.post("/switch-index")

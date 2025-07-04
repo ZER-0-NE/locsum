@@ -9,9 +9,15 @@
 <body>
     <div class="container">
         <h1>locsum - Local Second Brain</h1>
-        <div class="status-bar">
-            <span id="index-status-text"></span>
-            <button id="switch-index-button" class="hidden">Switch to New Index</button>
+        <div id="status-bar" class="status-bar">
+            <div class="status-indicator">
+                <span id="index-status-icon"></span>
+                <span id="index-status-text">Index Status: Initializing...</span>
+            </div>
+            <div class="status-controls">
+                <button id="refresh-status-button">&#x21bb;</button>
+                <button id="switch-index-button" class="hidden">Switch Index</button>
+            </div>
         </div>
         <div class="chat-window">
             <div id="response-container"></div>
