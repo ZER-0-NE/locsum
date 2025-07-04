@@ -1,3 +1,8 @@
 GEMINI.md
 .venv/
 plan.md
+nohup.out
+faiss_index/
+faiss_index_A/
+faiss_index_B/
+index_state.json

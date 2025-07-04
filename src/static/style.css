@@ -81,3 +81,30 @@ h1 {
     text-align: left;
     margin-right: auto;
 }
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 0.9em;
+    color: #555;
+}
+
+#switch-index-button {
+    padding: 5px 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+#switch-index-button:hover {
+    background-color: #218838;
+}
+
+.hidden {
+    display: none;
+}
