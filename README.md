@@ -60,7 +60,9 @@ This project aims to create a local, personal second brain using a Retrieval Aug
 7.  **Run the FastAPI Application:**
     Start the FastAPI application. It will automatically build the FAISS index from your Obsidian notes if it doesn't exist.
     ```bash
-    uvicorn src.app:app --reload
+    ```bash
+uvicorn src.app:app --reload --reload-exclude "faiss_index_A/" --reload-exclude "faiss_index_B/" --reload-exclude "index_state.json"
+```
     ```
 
 8.  **Access the Frontend:**
