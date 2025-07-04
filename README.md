@@ -129,6 +129,13 @@ You can monitor and manage the index state using the following API endpoints:
         ```
 *   **`POST /switch-index`**: Promotes the ready green index to be the new live blue index. This is the action that would be triggered by a "Use New Index" button in a UI.
 
+#### Frontend Integration
+
+The frontend (`src/static/index.html` and `src/static/script.js`) has been updated to provide a visual interface for this blue-green deployment:
+
+*   **Status Bar:** A status bar at the top of the UI displays the current active index (e.g., "Active (A)") and indicates if a new index is ready for activation.
+*   **"Switch to New Index" Button:** This button appears automatically when a new index has been successfully built in the background and is ready to be promoted. Clicking it triggers the `/switch-index` API call, making the new index live.
+
 ### Retrieval and Generation
 
 Implemented functions in `src/rag_core.py` to set up the retrieval and generation components of the RAG system:
