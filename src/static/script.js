@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded. Script running.');
     const queryInput = document.getElementById('query-input');
     const submitButton = document.getElementById('submit-button');
     const responseContainer = document.getElementById('response-container');
@@ -7,22 +8,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to update index status
     const updateIndexStatus = async () => {
+        console.log('Fetching index status...');
         try {
             const response = await fetch('/index-status');
+            console.log('Received response from /index-status. OK:', response.ok, 'Status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
+            console.log('Parsed JSON data:', data);
 
             indexStatusText.textContent = `Index Status: Active (${data.blue_index.toUpperCase()})`;
 
             if (data.green_index_ready_for_swap) {
                 switchIndexButton.classList.remove('hidden');
+                switchIndexButton.disabled = false; // Ensure button is enabled if ready
                 indexStatusText.textContent += ` (New index ${data.green_index.toUpperCase()} ready!)`;
             } else {
                 switchIndexButton.classList.add('hidden');
+                switchIndexButton.disabled = true; // Ensure button is disabled if not ready
+                indexStatusText.textContent += ` (No new index ready)`;
             }
         } catch (error) {
             console.error('Error fetching index status:', error);
-            indexStatusText.textContent = 'Index Status: Error';
+            indexStatusText.textContent = 'Index Status: Error - Check console';
             switchIndexButton.classList.add('hidden');
+            switchIndexButton.disabled = true;
         }
     };
 
@@ -32,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listener for the switch index button
     switchIndexButton.addEventListener('click', async () => {
+        console.log('Switch Index button clicked.');
         switchIndexButton.disabled = true; // Disable button to prevent multiple clicks
         switchIndexButton.textContent = 'Switching...';
         try {
